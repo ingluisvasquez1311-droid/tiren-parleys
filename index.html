@@ -28,7 +28,21 @@
     .small-muted{font-size:.85rem;color:var(--muted)}
     .settings-box{background:#071622;padding:10px;border-radius:8px;border:1px solid #123140}
     .flex-gap{display:flex;gap:8px}
-    @media (max-width:767px){.row-gap{display:flex;flex-direction:column}}
+
+    /* Layout móvil por defecto si se detecta */
+    body.mobile .row {
+        flex-direction: column !important;
+    }
+    body.mobile .sidebar-card {
+        max-height:40vh;
+    }
+    body.mobile .col-md-5, body.mobile .col-md-4 {
+        width:100%;
+    }
+
+    @media (max-width:767px){
+        .row-gap{display:flex;flex-direction:column}
+    }
   </style>
 </head>
 <body>
@@ -49,7 +63,6 @@
               <div class="muted" id="current-sport-label">football</div>
             </div>
             <div id="leagues-list" class="p-0">
-              <!-- preserved widget -->
               <api-sports-widget data-type="leagues"></api-sports-widget>
             </div>
 
@@ -139,7 +152,7 @@
     </div>
   </div>
 
-  <!-- Config widget (con tu API key) -->
+  <!-- Config widget -->
   <api-sports-widget
     data-type="config"
     data-key="5d336df03a293338648ef0478999076c"
@@ -166,6 +179,20 @@
   </api-sports-widget>
 
 <script>
+/* ================== Detectar dispositivo ================== */
+function detectDevice() {
+    const ua = navigator.userAgent;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    if (isMobile) {
+        document.body.classList.add('mobile');
+        console.log('Modo móvil activado');
+    } else {
+        document.body.classList.add('desktop');
+        console.log('Modo escritorio activado');
+    }
+}
+detectDevice();
+
 /* ================== Código JS unificado ================== */
 const API_KEY = "5d336df03a293338648ef0478999076c";
 let currentSport = "football";
@@ -174,35 +201,27 @@ const teamFilter = document.getElementById('team-filter');
 const favoritesList = document.getElementById('favorites-list');
 
 // Endpoints por deporte
-const ENDPOINTS = {
-  football: { host: "v3.football.api-sports.io", live: "https://v3.football.api-sports.io/fixtures?live=all", upcoming: "https://v3.football.api-sports.io/fixtures?status=NS&next=30" },
-  basketball: { host: "v1.basketball.api-sports.io", live: "https://v1.basketball.api-sports.io/games?live=all", upcoming: "https://v1.basketball.api-sports.io/games?next=30" },
-  tennis: { host: "v1.tennis.api-sports.io", live: "https://v1.tennis.api-sports.io/matches?live=all", upcoming: "https://v1.tennis.api-sports.io/matches?status=NS&next=30" },
-  hockey: { host: "v1.hockey.api-sports.io", live: "https://v1.hockey.api-sports.io/matches?live=all", upcoming: "https://v1.hockey.api-sports.io/matches?status=NS&next=30" },
-  baseball: { host: "v1.baseball.api-sports.io", live: "https://v1.baseball.api-sports.io/games?live=all", upcoming: "https://v1.baseball.api-sports.io/games?next=30" },
-  volleyball: { host: "v1.volleyball.api-sports.io", live: "", upcoming: "" },
-  handball: { host: "v1.handball.api-sports.io", live: "", upcoming: "" }
-};
+const ENDPOINTS = { football:{host:"v3.football.api-sports.io",live:"https://v3.football.api-sports.io/fixtures?live=all",upcoming:"https://v3.football.api-sports.io/fixtures?status=NS&next=30"}, basketball:{host:"v1.basketball.api-sports.io",live:"https://v1.basketball.api-sports.io/games?live=all",upcoming:"https://v1.basketball.api-sports.io/games?next=30"}, tennis:{host:"v1.tennis.api-sports.io",live:"https://v1.tennis.api-sports.io/matches?live=all",upcoming:"https://v1.tennis.api-sports.io/matches?status=NS&next=30"}, hockey:{host:"v1.hockey.api-sports.io",live:"https://v1.hockey.api-sports.io/matches?live=all",upcoming:"https://v1.hockey.api-sports.io/matches?status=NS&next=30"}, baseball:{host:"v1.baseball.api-sports.io",live:"https://v1.baseball.api-sports.io/games?live=all",upcoming:"https://v1.baseball.api-sports.io/games?next=30"}, volleyball:{host:"v1.volleyball.api-sports.io",live:"",upcoming:""}, handball:{host:"v1.handball.api-sports.io",live:"",upcoming:""}};
 
 function get(o,p,d=null){ try{ return p.split('.').reduce((a,b)=> a && a[b]!==undefined?a[b]:null,o)??d }catch(e){return d} }
 
-/* ---------------- Favorites ---------------- */
+// ---------------- Favorites ----------------
 function loadFavorites(){ const f = JSON.parse(localStorage.getItem('tiren_favs')||'[]'); renderFavorites(f); }
 function saveFavorite(item){ const f = JSON.parse(localStorage.getItem('tiren_favs')||'[]'); f.unshift(item); localStorage.setItem('tiren_favs', JSON.stringify(f.slice(0,50))); renderFavorites(f); }
 function removeFav(i){ const f = JSON.parse(localStorage.getItem('tiren_favs')||'[]'); f.splice(i,1); localStorage.setItem('tiren_favs', JSON.stringify(f)); renderFavorites(f); }
 function renderFavorites(list){ favoritesList.innerHTML=''; if(!list.length){ favoritesList.innerHTML='<div class="muted">No hay favoritos</div>'; return;} list.slice(0,10).forEach((it,i)=>{ const div=document.createElement('div'); div.className='d-flex justify-content-between align-items-center bubble'; div.innerHTML=`<div><strong>${it.title}</strong><div class="muted">${it.subtitle}</div></div><div><button class="fav-btn saved" onclick="removeFav(${i})">Quitar</button></div>`; favoritesList.appendChild(div); }); }
 
-/* --------------- Fetch helper ---------------- */
+// --------------- Fetch helper ----------------
 async function fetchApi(url, host=null){ const headers = {"x-apisports-key":API_KEY}; if(host) headers["x-rapidapi-host"]=host; const res=await fetch(url,{headers}); return res.json(); }
 
-/* ------------- Render helpers ------------- */
+// ------------- Render helpers -------------
 function renderFootballCard(m){ const home=get(m,'teams.home.name','Home'), away=get(m,'teams.away.name','Away'); const goalsH=get(m,'goals.home',0), goalsA=get(m,'goals.away',0); return {title:`${home} vs ${away}`, subtitle:`Goles ${goalsH}-${goalsA}`, html:`<div style="font-weight:700">${home} vs ${away}</div><div class="muted">Goles: ${goalsH}-${goalsA}</div>`}; }
 function renderBasketballCard(m){ const home=get(m,'home.name')||get(m,'teams.home.name','Home'), away=get(m,'away.name')||get(m,'teams.away.name','Away'), ptsH=get(m,'scores.home', get(m,'points.home',0)), ptsA=get(m,'scores.away', get(m,'points.away',0)); return {title:`${home} vs ${away}`, subtitle:`Puntos ${ptsH}-${ptsA}`, html:`<div style="font-weight:700">${home} vs ${away}</div><div class="muted">Puntos: ${ptsH}-${ptsA}</div>`}; }
 function renderTennisCard(m){ const p1=get(m,'players[0].player.name','Player1'), p2=get(m,'players[1].player.name','Player2'); return {title:`${p1} vs ${p2}`, subtitle:'Revisar superficie y forma', html:`<div style="font-weight:700">${p1} vs ${p2}</div><div class="muted">Ver aces, dobles faltas y sets</div>`}; }
 function renderHockeyCard(m){ const home=get(m,'teams.home.name','Home'), away=get(m,'teams.away.name','Away'); const gH=get(m,'goals.home',0), gA=get(m,'goals.away',0); return {title:`${home} vs ${away}`, subtitle:`Goles ${gH}-${gA}`, html:`<div style="font-weight:700">${home} vs ${away}</div><div class="muted">Goles: ${gH}-${gA}</div>`}; }
 function renderBaseballCard(m){ const home=get(m,'teams.home.name','Home'), away=get(m,'teams.away.name','Away'), rH=get(m,'score.fulltime.home', get(m,'scores.home',0)), rA=get(m,'score.fulltime.away', get(m,'scores.away',0)); return {title:`${home} vs ${away}`, subtitle:`Carreras ${rH}-${rA}`, html:`<div style="font-weight:700">${home} vs ${away}</div><div class="muted">Carreras: ${rH}-${rA}</div>`}; }
 
-/* ---------------- Core: cargar partidos ---------------- */
+// ---------------- Core: cargar partidos ----------------
 async function loadMatches(live=true){
   magoOutput.innerHTML='<div class="muted">Cargando partidos y recomendaciones...</div>';
   const endpoints=ENDPOINTS[currentSport]; if(!endpoints){ magoOutput.innerHTML='<div class="muted">Deporte no soportado aún.</div>'; return; }
@@ -221,7 +240,7 @@ async function loadMatches(live=true){
   }catch(e){ console.error(e); magoOutput.innerHTML='<div class="muted">Error al consultar API.</div>'; }
 }
 
-/* ---------------- UI helpers ---------------- */
+// ---------------- UI helpers ----------------
 window.saveThisFav=(t,s)=>{ saveFavorite({title:t,subtitle:s}); loadFavorites(); };
 window.sharePick=(t)=>{ alert('Compartir (simulado): '+t); };
 
