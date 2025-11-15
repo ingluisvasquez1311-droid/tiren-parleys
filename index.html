@@ -3,140 +3,53 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiren Parleys - Consejos del Mago</title>
-
+    <title>Partidos en Vivo - Tiren Parleys</title>
     <style>
-        body {
-            background-color: #0d0d0d;
-            font-family: Arial, sans-serif;
-            color: white;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
-
-        .header {
-            background: #111;
-            padding: 20px;
-            font-size: 25px;
-            font-weight: bold;
-        }
-
-        .container {
-            padding: 15px;
-        }
-
-        select {
-            width: 90%;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
-
+        body { background: #101010; color: white; font-family: Arial; }
         .card {
-            background: #1c1c1c;
+            background: #1a1a1a;
             padding: 15px;
-            border-radius: 12px;
-            margin-top: 12px;
-            font-size: 17px;
-            text-align: left;
-            border-left: 5px solid #00d9ff;
+            margin: 10px;
+            border-radius: 10px;
+            border-left: 5px solid #00eaff;
         }
     </style>
 </head>
 
 <body>
-
-    <div class="header">⚡ CONSEJOS DEL MAGO ⚡</div>
-
-    <!-- FECHA -->
-    <h2 id="fecha" style="margin-top:5px; font-size:18px; color:#ccc;"></h2>
+    <h1>📡 Partidos En Vivo</h1>
+    <div id="partidos"></div>
 
     <script>
-        function mostrarFecha() {
-            const hoy = new Date();
-            const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById("fecha").innerText = hoy.toLocaleDateString('es-ES', opciones);
-        }
-        mostrarFecha();
-    </script>
+        async function cargarPartidos() {
+            let contenedor = document.getElementById("partidos");
+            contenedor.innerHTML = "Cargando partidos...";
 
-    <div class="container">
+            const res = await fetch("/api/partidos-hoy");
+            const data = await res.json();
 
-        <!-- SELECT DE DEPORTES -->
-        <select id="deporte" onchange="cargarConsejos()">
-            <option value="futbol">⚽ Fútbol</option>
-            <option value="baloncesto">🏀 Baloncesto</option>
-            <option value="tenis">🎾 Tenis</option>
-            <option value="beisbol">⚾ Béisbol</option>
-            <option value="americano">🏈 Fútbol Americano</option>
-        </select>
-
-        <div id="contenedorConsejos"></div>
-    </div>
-
-    <script>
-        function cargarConsejos() {
-            const deporte = document.getElementById("deporte").value;
-            const contenedor = document.getElementById("contenedorConsejos");
-
-            let consejos = [];
-
-            if (deporte === "futbol") {
-                consejos = [
-                    "Más de 8.5 tiros de esquina",
-                    "Ambos equipos marcan",
-                    "Más de 2.5 goles"
-                ];
+            if (!data.response || data.response.length === 0) {
+                contenedor.innerHTML = "<p>No hay partidos en vivo.</p>";
+                return;
             }
 
-            if (deporte === "baloncesto") {
-                consejos = [
-                    "Más de 210.5 puntos totales",
-                    "Jugador estrella +20 puntos",
-                    "Más de 45.5 intentos de campo"
-                ];
-            }
-
-            if (deporte === "tenis") {
-                consejos = [
-                    "Más de 20.5 juegos en el partido",
-                    "Ganador del primer set",
-                    "Más de 9.5 aces totales"
-                ];
-            }
-
-            if (deporte === "beisbol") {
-                consejos = [
-                    "Más de 7.5 carreras",
-                    "Ganador del partido",
-                    "Más de 1.5 home runs"
-                ];
-            }
-
-            if (deporte === "americano") {
-                consejos = [
-                    "Más de 42.5 puntos totales",
-                    "Más de 3.5 touchdowns",
-                    "Ganador por spread"
-                ];
-            }
-
-            // Renderizar consejos
             contenedor.innerHTML = "";
-            consejos.forEach(texto => {
+
+            data.response.forEach(match => {
                 contenedor.innerHTML += `
-                    <div class="card">${texto}</div>
+                    <div class="card">
+                        <h3>${match.teams.home.name} vs ${match.teams.away.name}</h3>
+                        <p><strong>Marcador:</strong> ${match.goals.home} - ${match.goals.away}</p>
+                        <p><strong>Tiempo:</strong> ${match.fixture.status.elapsed} min</p>
+                    </div>
                 `;
             });
         }
 
-        // Cargar por defecto
-        cargarConsejos();
+        cargarPartidos();
+        setInterval(cargarPartidos, 30000); // cada 30s
     </script>
 
 </body>
-
 </html>
+
